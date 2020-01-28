@@ -55,6 +55,20 @@ class Impervious:
             self.store_current()
 
 
+def main(lyrs):
+    # Instantiate each layer as an Impervious class
+    impervious_features = (Impervious(layer) for layer in lyrs)
+    equals_previous = (imp.equals_previous() for imp in impervious_features)
+
+    # See if any changes have been made to the layers involved
+    if all(equals_previous):
+        log.info("None of the layers have changed since the previous run...")
+    else:
+        # Check how far up the hierarchy the derived layer needs to change
+        # 0 = MaintenanceAreas, 1 = Buildings, 2 = Roads, and so on
+        idx = [i for i, x in enumerate(equals_previous) if not x][0]
+
+
 if __name__ == '__main__':
     # Initialize configurations
     with open(r'.\config.yaml') as config_file:
@@ -78,6 +92,6 @@ if __name__ == '__main__':
               {"GISPROD3.PW.ImperviousMisc": ""}]
 
     try:
-        pass
+        main(layers)
     except Exception:
         log.exception("Something prevented the script from running")
