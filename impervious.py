@@ -22,7 +22,8 @@ class Impervious:
     def __key(self):
         """Creates a tuple ordered by GLOBALIDs, used for hash comparisons."""
 
-        key = tuple(sorted(self.rows, key=lambda y: y[0]))
+        attributes = [(r["GLOBALID"], r["SHAPE@"]) for r in self.rows]
+        key = tuple(sorted(attributes, key=lambda y: y[0]))
         return key
 
     def rows(self):
@@ -33,7 +34,8 @@ class Impervious:
 
         with arcpy.da.SearchCursor(self.path, fields, self.query) as cursor:
             for row in cursor:
-                rows.append((row[0], row[1]) for i in range(len(fields)))
+                r = {fields[i]: row[i] for i in range(len(fields))}
+                rows.append(r)
 
         return rows
 
