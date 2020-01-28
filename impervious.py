@@ -1,6 +1,5 @@
 import os
 import shelve
-import getpass
 import logging
 import logging.config
 import logging.handlers
@@ -8,22 +7,7 @@ import logging.handlers
 import yaml
 import arcpy
 
-# Initialize configurations
-username = getpass.getuser()
-user_email = f"{username}@bouldercolorado.gov"
 
-with open(r'.\impervious-surfaces\config.yaml') as config_file:
-    config = yaml.safe_load(config_file.read())
-    logging.config.dictConfig(config['logging'])
-
-read_conn = config['connections']['read']
-edit_conn = config['connections']['edit']
-
-# Initialize the logger for this file
-log = config.logging.getLogger(__name__)
-
-
-# Create a class for impervious layers
 class Impervious:
     def __init__(self, lyr):
         self.name = list(lyr)[0]
@@ -71,16 +55,29 @@ class Impervious:
             self.store_current()
 
 
-# Define order for intersecting layers, and relevant queries for each
-layers = [{"GISPROD3.PW.PWMaintenanceArea":
-           "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"},
-          {"GISPROD3.PW.Building": ""},
-          {"GISPROD3.PW.RoadArea": ""},
-          {"GISPROD3.PW.ParkingLot": "AND SURFACETYPE = 'Impervious'"},
-          {"GISPROD3.PW.Driveway": ""},
-          {"GISPROD3.PW.SidewalkArea": ""},
-          {"GISPROD3.PW.ImperviousMisc": ""}]
+if __name__ == '__main__':
+    # Initialize configurations
+    with open(r'.\config.yaml') as config_file:
+        config = yaml.safe_load(config_file.read())
+        logging.config.dictConfig(config['logging'])
 
-# Move through each layer
-for layer in layers:
-    feature = Impervious(layer)
+    read_conn = config['connections']['read']
+    edit_conn = config['connections']['edit']
+
+    # Initialize the logger for this file
+    log = config.logging.getLogger(__name__)
+
+    # Define order for intersecting layers, and relevant queries for each
+    layers = [{"GISPROD3.PW.PWMaintenanceArea":
+               "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"},
+              {"GISPROD3.PW.Building": ""},
+              {"GISPROD3.PW.RoadArea": ""},
+              {"GISPROD3.PW.ParkingLot": "AND SURFACETYPE = 'Impervious'"},
+              {"GISPROD3.PW.Driveway": ""},
+              {"GISPROD3.PW.SidewalkArea": ""},
+              {"GISPROD3.PW.ImperviousMisc": ""}]
+
+    try:
+        pass
+    except Exception:
+        log.exception("Something prevented the script from running")
