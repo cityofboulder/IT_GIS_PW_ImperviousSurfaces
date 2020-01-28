@@ -19,6 +19,9 @@ with open(r'.\impervious-surfaces\config.yaml') as config_file:
 read_conn = config['connections']['read']
 edit_conn = config['connections']['edit']
 
+# Initialize the logger for this file
+log = config.logging.getLogger(__name__)
+
 
 # Create a class for impervious layers
 class Impervious:
