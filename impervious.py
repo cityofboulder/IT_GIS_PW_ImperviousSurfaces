@@ -11,7 +11,7 @@ import arcpy
 class Impervious:
     def __init__(self, lyr):
         self.name = list(lyr)[0]
-        self.location = os.path.join(edit_conn, "PW.PWAREA")
+        self.location = os.path.join(read_conn, "PW.PWAREA")
         self.path = os.path.join(self.location, self.name)
         self.query = "LIFECYCLE = 'Active'" + list(lyr)[1]
         self.rows = self.rows()
@@ -56,8 +56,25 @@ class Impervious:
         except KeyError:
             self.store_current()
 
+    def memory_fc(self, template_fc):
+        """Creates a feature class in memory based off of template schema."""
+        fc = arcpy.CreateFeatureclass_management("in_memory",
+                                                 self.name,
+                                                 template=template_fc)
+        arcpy.Append_management(self.path, fc, "NO_TEST")
+
+        with arcpy.da.UpdateCursor(fc, ["ORIGIN"]) as cursor:
+            for row in cursor:
+                row[0] = self.name
+                cursor.updateRow(row)
+
+        return fc
+
 
 def main(lyrs):
+    # Define the output layer
+    surfaces = os.path.join(edit_conn, "PW.ImperviousSurface")
+
     # Instantiate each layer as an Impervious class
     impervious_features = (Impervious(layer) for layer in lyrs)
     equals_previous = (imp.equals_previous() for imp in impervious_features)
@@ -84,6 +101,7 @@ if __name__ == '__main__':
     log = config.logging.getLogger(__name__)
 
     # Define order for intersecting layers, and relevant queries for each
+    # Dicts within a list helps enforce ordering
     layers = [{"GISPROD3.PW.PWMaintenanceArea":
                "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"},
               {"GISPROD3.PW.Building": ""},
