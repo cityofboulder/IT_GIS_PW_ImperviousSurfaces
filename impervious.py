@@ -116,13 +116,14 @@ if __name__ == '__main__':
     # Define order for intersecting layers, and relevant queries for each
     # Dicts within a list helps enforce ordering
     layers = [{"GISPROD3.PW.ImperviousMisc": ""},
-              {"GISPROD3.PW.SidewalkArea": ""},
-              {"GISPROD3.PW.Driveway": ""},
-              {"GISPROD3.PW.ParkingLot": "AND SURFACETYPE = 'Impervious'"},
-              {"GISPROD3.PW.RoadArea": ""},
-              {"GISPROD3.PW.Building": ""},
+              {"GISPROD3.PW.SidewalkArea": "LIFECYCLE = 'Active'"},
+              {"GISPROD3.PW.Driveway": "LIFECYCLE = 'Active'"},
+              {"GISPROD3.PW.ParkingLot":
+               "LIFECYCLE = 'Active' AND SURFACETYPE = 'Impervious'"},
+              {"GISPROD3.PW.RoadArea": "LIFECYCLE = 'Active'"},
+              {"GISPROD3.PW.Building": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.PWMaintenanceArea":
-               "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
+               "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
 
     try:
         main(layers)
