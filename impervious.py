@@ -106,20 +106,20 @@ def send_email(password: str, insert: str, recipients: list, *attachments):
                             filename=item.split(os.sep).pop())
             msg.attach(part)
 
-        body = f"""\
-                <html>
-                    <body>
-                        <p>
-                        Dear Human,<br><br>
-                        {insert}
-                        </p>
-                        <p>
-                        Beep Boop Beep,<br><br>
-                        End Transmission
-                        </p>
-                    </body>
-                </html>
-                """
+    body = f"""\
+            <html>
+                <body>
+                    <p>
+                    Dear Human,<br><br>
+                    {insert}
+                    </p>
+                    <p>
+                    Beep Boop Beep,<br><br>
+                    End Transmission
+                    </p>
+                </body>
+            </html>
+            """
 
     msg.attach(MIMEText(body, 'html'))
 
@@ -161,7 +161,7 @@ def main(lyrs, check, connection):
                 f"memory\\{surf.name.split('.')[-1]}Update")
 
         # Remove old records from the table
-        log.info("Removing old impercious surfaces from feature class...")
+        log.info("Removing old impervious surfaces from feature class...")
         editor = arcpy.da.Editor(connection)
         editor.startEditing(False, True)
         editor.startOperation()
