@@ -35,7 +35,7 @@ class Impervious:
     def rows(self):
         """Returns a list of tuples representing (GLOBALID, SHAPE) pairs."""
 
-        fields = ["GLOBALID", "SHAPE@"]
+        fields = ["GLOBALID", "SHAPE@WKT"]
         rows = []
 
         with arcpy.da.SearchCursor(self.path, fields, self.query) as cursor:
