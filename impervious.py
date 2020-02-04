@@ -15,6 +15,12 @@ class Impervious:
         self.path = os.path.join(self.location, self.name)
         self.query = "LIFECYCLE = 'Active'" + list(lyr.values())[0]
         self.rows = self.rows()
+        self._desc = arcpy.Describe(self.path)
+
+    def __getattr__(self, item):
+        """Pass any other attribute or method calls through to the
+        underlying Describe object"""
+        return getattr(self._desc, item)
 
     def __hash__(self):
         return hash(self.__key())
