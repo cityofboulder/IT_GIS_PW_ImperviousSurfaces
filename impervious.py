@@ -4,6 +4,12 @@ import getpass
 import logging
 import logging.config
 import logging.handlers
+import smtplib
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from cryptography.fernet import Fernet
 
 import yaml
 import arcpy
@@ -80,6 +86,69 @@ class Impervious:
         return fc
 
 
+def decrypt(key, token):
+    """This function decrypts encrypted text back into plain text.
+
+    Parameters:
+    -----------
+    key : str
+        Encryption key
+    token : str
+        Encrypted text
+
+    Returns:
+    --------
+    str
+        Decrypted plain text
+    """
+
+    decrypted = ""
+    try:
+        f = Fernet(key)
+        decrypted = f.decrypt(bytes(token, 'utf-8'))
+    except Exception:
+        pass
+
+    return decrypted.decode("utf-8")
+
+
+def send_email(body: str, recipients: list, *attachments):
+    # from/to addresses
+    sender = 'noreply@bouldercolorado.gov'
+    password = decrypt("key", "token")
+
+    # message
+    msg = MIMEMultipart('alternative')
+    msg['From'] = sender
+    msg['To'] = "; ".join(recipients)
+    msg['Subject'] = "\N{High Voltage Sign} Impervious Surfaces \N{High Voltage Sign}"
+
+    if attachments:
+        for item in attachments:
+            a = open(item, 'rb')
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(a.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', 'attachment',
+                            filename=item.split(os.sep).pop())
+            msg.attach(part)
+
+    msg.attach(MIMEText(body, 'html'))
+
+    # create SMTP object
+    server = smtplib.SMTP(host='smtp.office365.com', port=587)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+
+    # log in
+    server.login(sender, password)
+
+    # send email
+    server.sendmail(sender, recipients, msg.as_string())
+    server.quit()
+
+
 def main(lyrs, check):
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
@@ -105,6 +174,11 @@ def main(lyrs, check):
             for row in cursor:
                 cursor.deleteRow()
 
+        # insert_fields = ['ORIGIN', 'SHAPE@']
+        # with arcpy.da.InsertCursor(original, insert_fields) as insert:
+        #     with arcpy.da.SearchCursor(temp, insert_fields) as search:
+        #         for row in search:
+        #             insert.insertRow(row)
         arcpy.Append_management(temp, original, "NO_TEST")
 
 
