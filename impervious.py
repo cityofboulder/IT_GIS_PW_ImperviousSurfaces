@@ -115,7 +115,8 @@ def decrypt(key, token):
 def send_email(insert: str, recipients: list, *attachments):
     # from/to addresses
     sender = 'noreply@bouldercolorado.gov'
-    password = decrypt("key", "token")
+    password = decrypt("TYrwjLqMyDmzvQpi0fcFFsSw2LBGcYe3HJGhV6Z0lLw=",
+                       "gAAAAABeOEg-BprQjgFg1XCPwn4jnvzZ9F1UBGXZc0QzfwLdH0d9XTxIg8tRWUBxEEHIpBuuhmEB4Jo6d1enL9EGilQ-NxK7cSNMQExxTm9uuxImiR6dEQo=")
 
     # message
     msg = MIMEMultipart('alternative')
@@ -164,7 +165,7 @@ def send_email(insert: str, recipients: list, *attachments):
     server.quit()
 
 
-def main(lyrs, check):
+def main(lyrs, check, connection):
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
@@ -189,9 +190,15 @@ def main(lyrs, check):
 
         # Remove old records from the table
         log.info("Removing old impercious surfaces from feature class...")
+        editor = arcpy.Editor(connection)
+        editor.startEditing(False, True)
+        editor.startOperation()
         with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
             for row in cursor:
                 cursor.deleteRow()
+        editor.stopOperation()
+        editor.stopEditing(True)
+        del editor
 
         # insert_fields = ['ORIGIN', 'SHAPE@']
         # with arcpy.da.InsertCursor(original, insert_fields) as insert:
@@ -238,7 +245,7 @@ if __name__ == '__main__':
               {"GISPROD3.PW.PWMaintenanceArea":
                "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
     try:
-        message = main(layers, check_previous)
+        message = main(layers, check_previous, edit_conn)
         send_email(message, email_recipients)
     except Exception:
         log.exception("Something prevented the script from running")
