@@ -1,6 +1,7 @@
-## Impervious Surfaces for Utility Billing
+# Impervious Surfaces for Utility Billing
 
-### Introduction
+## Introduction
+---
 
 This script utilizes planimetric data from city sources to derive a layer that can be used for estimating impervious area on properties for utility billing purposes. In the broadest terms, it does the following:
 
@@ -16,7 +17,7 @@ This script utilizes planimetric data from city sources to derive a layer that c
     - Sidewalk
     - ImperviousMisc
 
-### Using this script
+## Using this script
 
 This script assumes that the user has access to &mdash; and working knowledge of &mdash; the following software:
 
@@ -28,4 +29,34 @@ This script hinges on the ability to leverage `arcpy` as well as the `conda` env
 ```cmd
 conda create --name impervious_env --clone arcgispro-py3
 activate impervious_env
+```
+
+## Preparing the script for use
+
+The only non-standard library which this script uses is `pyyaml`, as it uses .yaml config files. In order to gain access to this library, use the `cmd` prompt to run the following commands:
+
+```cmd
+activate impoervious_env
+conda install pyyaml
+```
+
+`Conda` will prompt you to confirm. Say yes!
+
+Lastly, make sure to add the following to the config.yaml file before running the script:
+
+- whether to check the component layers against the last script run
+- file location of your sde connection used for editing
+- file location of your sde connection used for reading
+- email password (both in the logging section and email password section)
+- email recipients
+
+## Running the script
+---
+
+Use the cmd prompt:
+
+```cmd
+cd filepath\containing\impervious.py
+activate impervious_env
+python impervious.py
 ```
