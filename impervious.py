@@ -86,37 +86,9 @@ class Impervious:
         return fc
 
 
-def decrypt(key, token):
-    """This function decrypts encrypted text back into plain text.
-
-    Parameters:
-    -----------
-    key : str
-        Encryption key
-    token : str
-        Encrypted text
-
-    Returns:
-    --------
-    str
-        Decrypted plain text
-    """
-
-    decrypted = ""
-    try:
-        f = Fernet(key)
-        decrypted = f.decrypt(bytes(token, 'utf-8'))
-    except Exception:
-        pass
-
-    return decrypted.decode("utf-8")
-
-
-def send_email(insert: str, recipients: list, *attachments):
+def send_email(password: str, insert: str, recipients: list, *attachments):
     # from/to addresses
     sender = 'noreply@bouldercolorado.gov'
-    password = decrypt("TYrwjLqMyDmzvQpi0fcFFsSw2LBGcYe3HJGhV6Z0lLw=",
-                       "gAAAAABeOEg-BprQjgFg1XCPwn4jnvzZ9F1UBGXZc0QzfwLdH0d9XTxIg8tRWUBxEEHIpBuuhmEB4Jo6d1enL9EGilQ-NxK7cSNMQExxTm9uuxImiR6dEQo=")
 
     # message
     msg = MIMEMultipart('alternative')
@@ -246,6 +218,7 @@ if __name__ == '__main__':
                "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
     try:
         message = main(layers, check_previous, edit_conn)
-        send_email(message, email_recipients)
+        password = config['password']
+        send_email(password, message, email_recipients)
     except Exception:
         log.exception("Something prevented the script from running")
