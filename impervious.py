@@ -1,5 +1,6 @@
 import os
 import shelve
+import getpass
 import logging
 import logging.config
 import logging.handlers
@@ -65,7 +66,8 @@ class Impervious:
     def memory_fc(self, template_fc):
         """Creates a feature class in memory based off of template schema."""
         fc = arcpy.CreateFeatureclass_management("in_memory",
-                                                 self.name,
+                                                 self.name.split('.')[-1],
+                                                 "POLYGON",
                                                  template=template_fc)
         arcpy.Append_management(
             self.path, fc, "NO_TEST", expression=self.query)
@@ -80,11 +82,11 @@ class Impervious:
 
 def main(lyrs):
     # Define the output layer
-    original = os.path.join(edit_conn, "PW.ImperviousSurface")
+    original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
     # Instantiate each layer as an Impervious class
-    impervious_features = (Impervious(layer) for layer in lyrs)
-    equals_previous = (imp.equals_previous() for imp in impervious_features)
+    impervious_features = [Impervious(layer) for layer in lyrs]
+    equals_previous = [imp.equals_previous() for imp in impervious_features]
 
     # See if any changes have been made to the layers involved
     if all(equals_previous):
@@ -93,8 +95,10 @@ def main(lyrs):
         log.info("Creating a new ImperviousSurface layer...")
         temp = impervious_features[0].memory_fc(original)
         for surf in impervious_features[1:]:
+            log.info(f"Updating ImperviousSurface with {surf.name}...")
             temp = arcpy.Update_analysis(
-                temp, surf.memory_fc(original), "in_memory")
+                temp, surf.memory_fc(original),
+                f"memory\\{surf.name.split('.')[-1]}Update")
 
         log.info("Loading new impervious surfaces into feature class...")
         arcpy.TruncateTable_management(original)
@@ -113,10 +117,13 @@ if __name__ == '__main__':
     # Initialize the logger for this file
     log = logging.getLogger(__name__)
 
+    username = getpass.getuser()
+    log.info(f"Started by {username}...")
+
     # Define order for intersecting layers, and relevant queries for each
     # Dicts within a list helps enforce ordering
     layers = [{"GISPROD3.PW.ImperviousMisc": ""},
-              {"GISPROD3.PW.SidewalkArea": "LIFECYCLE = 'Active'"},
+              {"GISPROD3.PW.SidewalkArea": ""},
               {"GISPROD3.PW.Driveway": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.ParkingLot":
                "LIFECYCLE = 'Active' AND SURFACETYPE = 'Impervious'"},
