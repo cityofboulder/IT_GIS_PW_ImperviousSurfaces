@@ -162,7 +162,7 @@ def main(lyrs, check, connection):
 
         # Remove old records from the table
         log.info("Removing old impercious surfaces from feature class...")
-        editor = arcpy.Editor(connection)
+        editor = arcpy.da.Editor(connection)
         editor.startEditing(False, True)
         editor.startOperation()
         with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
