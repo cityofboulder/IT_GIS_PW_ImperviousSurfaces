@@ -28,7 +28,7 @@ class Impervious:
     def __key(self):
         """Creates a tuple ordered by GLOBALIDs, used for hash comparisons."""
 
-        attributes = [(r["GLOBALID"], r["SHAPE@"]) for r in self.rows]
+        attributes = [(r["GLOBALID"], r["SHAPE@WKT"]) for r in self.rows]
         key = tuple(sorted(attributes, key=lambda y: y[0]))
         return key
 
@@ -124,7 +124,6 @@ if __name__ == '__main__':
               {"GISPROD3.PW.Building": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.PWMaintenanceArea":
                "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
-
     try:
         main(layers)
     except Exception:
