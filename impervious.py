@@ -87,6 +87,21 @@ class Impervious:
 
 
 def send_email(password: str, insert: str, recipients: list, *attachments):
+    """
+    Sends an email notification.
+
+    Parameters
+    ----------
+    password : str
+        The password for the City's noreply email
+    insert : str
+        The main body of the email
+    recipients : list
+        A list of recipients for which the email is intended
+    attatchments : str
+        Unlimited and optional number of file paths to attachments
+    """
+
     # from/to addresses
     sender = 'noreply@bouldercolorado.gov'
 
@@ -138,6 +153,29 @@ def send_email(password: str, insert: str, recipients: list, *attachments):
 
 
 def main(lyrs, check, connection):
+    """Main function of the scriptt
+
+    This function analyzes a list of layers in order to update the
+    Impervious surface feature in PROD3. If none of the component layers
+    have changed since the last script run, the layer will not be
+    updated.
+
+    Parameters
+    ----------
+    lyrs : list
+        List of dicts, where each dict is a {"feature class name": "query"}
+        pair
+    check : boolean
+        A flag that triggers comparison to the previous script run
+    connection : str
+        A file path to the edit SDE connection
+
+    Returns
+    -------
+    str
+        The main email body message based on the results of the function
+    """
+
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
