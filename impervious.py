@@ -9,7 +9,6 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from cryptography.fernet import Fernet
 
 import yaml
 import arcpy
@@ -253,7 +252,8 @@ if __name__ == '__main__':
               {"GISPROD3.PW.RoadArea": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.Building": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.PWMaintenanceArea":
-               "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
+               ("LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' "
+                "AND SURFTYPE = 'Hard'")}]
     try:
         message = main(layers, check_previous, edit_conn)
         password = config['password']
