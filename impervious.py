@@ -13,7 +13,7 @@ class Impervious:
         self.name = list(lyr)[0]
         self.location = os.path.join(read_conn, "PW.PWAREA")
         self.path = os.path.join(self.location, self.name)
-        self.query = "LIFECYCLE = 'Active'" + list(lyr.values())[0]
+        self.query = lyr[self.name]
         self.rows = self.rows()
         self._desc = arcpy.Describe(self.path)
 
