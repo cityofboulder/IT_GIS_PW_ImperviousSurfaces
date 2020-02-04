@@ -80,7 +80,7 @@ class Impervious:
         return fc
 
 
-def main(lyrs):
+def main(lyrs, check):
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
@@ -89,7 +89,7 @@ def main(lyrs):
     equals_previous = [imp.equals_previous() for imp in impervious_features]
 
     # See if any changes have been made to the layers involved
-    if all(equals_previous):
+    if check and all(equals_previous):
         log.info("None of the layers have changed since the previous run...")
     else:
         log.info("Creating a new ImperviousSurface layer...")
@@ -116,6 +116,7 @@ if __name__ == '__main__':
 
     read_conn = config['connections']['read']
     edit_conn = config['connections']['edit']
+    check_previous = config['check_previous']
 
     # Initialize the logger for this file
     log = logging.getLogger(__name__)
@@ -135,6 +136,6 @@ if __name__ == '__main__':
               {"GISPROD3.PW.PWMaintenanceArea":
                "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
     try:
-        main(layers)
+        main(layers, check_previous)
     except Exception:
         log.exception("Something prevented the script from running")
