@@ -112,7 +112,7 @@ def decrypt(key, token):
     return decrypted.decode("utf-8")
 
 
-def send_email(body: str, recipients: list, *attachments):
+def send_email(insert: str, recipients: list, *attachments):
     # from/to addresses
     sender = 'noreply@bouldercolorado.gov'
     password = decrypt("key", "token")
@@ -121,7 +121,7 @@ def send_email(body: str, recipients: list, *attachments):
     msg = MIMEMultipart('alternative')
     msg['From'] = sender
     msg['To'] = "; ".join(recipients)
-    msg['Subject'] = "\N{High Voltage Sign} Impervious Surfaces \N{High Voltage Sign}"
+    msg['Subject'] = "\N{Motorway} Impervious Surfaces \N{Motorway}"
 
     if attachments:
         for item in attachments:
@@ -132,6 +132,21 @@ def send_email(body: str, recipients: list, *attachments):
             part.add_header('Content-Disposition', 'attachment',
                             filename=item.split(os.sep).pop())
             msg.attach(part)
+
+        body = f"""\
+                <html>
+                    <body>
+                        <p>
+                        Dear Human,<br><br>
+                        {insert}
+                        </p>
+                        <p>
+                        Beep Boop Beep,<br><br>
+                        End Transmission
+                        </p>
+                    </body>
+                </html>
+                """
 
     msg.attach(MIMEText(body, 'html'))
 
@@ -160,7 +175,10 @@ def main(lyrs, check):
     # See if any changes have been made to the layers involved
     if check and all(equals_previous):
         log.info("None of the layers have changed since the previous run...")
+        msg = ("Impervious surfaces do not need to be updated because "
+               "none of its component layers have changed.")
     else:
+        # Update features based on the assigned hierarchy
         log.info("Creating a new ImperviousSurface layer...")
         temp = impervious_features[0].memory_fc(original)
         for surf in impervious_features[1:]:
@@ -169,7 +187,8 @@ def main(lyrs, check):
                 temp, surf.memory_fc(original),
                 f"memory\\{surf.name.split('.')[-1]}Update")
 
-        log.info("Loading new impervious surfaces into feature class...")
+        # Remove old records from the table
+        log.info("Removing old impercious surfaces from feature class...")
         with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
             for row in cursor:
                 cursor.deleteRow()
@@ -179,7 +198,15 @@ def main(lyrs, check):
         #     with arcpy.da.SearchCursor(temp, insert_fields) as search:
         #         for row in search:
         #             insert.insertRow(row)
+        # Add new geometries
+        log.info("Loading new impervious surfaces into feature class...")
         arcpy.Append_management(temp, original, "NO_TEST")
+
+        msg = ("The derived ImperviousSurfaces layer has been updated to "
+               "reflect changes in its component features")
+
+    # Return the email message notifying users of script run
+    return msg
 
 
 if __name__ == '__main__':
@@ -191,6 +218,7 @@ if __name__ == '__main__':
     read_conn = config['connections']['read']
     edit_conn = config['connections']['edit']
     check_previous = config['check_previous']
+    email_recipients = config['recipients']
 
     # Initialize the logger for this file
     log = logging.getLogger(__name__)
@@ -210,6 +238,7 @@ if __name__ == '__main__':
               {"GISPROD3.PW.PWMaintenanceArea":
                "LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
     try:
-        main(layers, check_previous)
+        message = main(layers, check_previous)
+        send_email(message, email_recipients)
     except Exception:
         log.exception("Something prevented the script from running")
