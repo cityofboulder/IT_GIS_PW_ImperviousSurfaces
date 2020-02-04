@@ -13,7 +13,7 @@ class Impervious:
         self.name = list(lyr)[0]
         self.location = os.path.join(read_conn, "PW.PWAREA")
         self.path = os.path.join(self.location, self.name)
-        self.query = "LIFECYCLE = 'Active'" + list(lyr)[1]
+        self.query = "LIFECYCLE = 'Active'" + list(lyr.values())[0]
         self.rows = self.rows()
 
     def __hash__(self):
@@ -61,7 +61,8 @@ class Impervious:
         fc = arcpy.CreateFeatureclass_management("in_memory",
                                                  self.name,
                                                  template=template_fc)
-        arcpy.Append_management(self.path, fc, "NO_TEST")
+        arcpy.Append_management(
+            self.path, fc, "NO_TEST", expression=self.query)
 
         with arcpy.da.UpdateCursor(fc, ["ORIGIN"]) as cursor:
             for row in cursor:
@@ -73,7 +74,7 @@ class Impervious:
 
 def main(lyrs):
     # Define the output layer
-    surfaces = os.path.join(edit_conn, "PW.ImperviousSurface")
+    original = os.path.join(edit_conn, "PW.ImperviousSurface")
 
     # Instantiate each layer as an Impervious class
     impervious_features = (Impervious(layer) for layer in lyrs)
@@ -83,9 +84,15 @@ def main(lyrs):
     if all(equals_previous):
         log.info("None of the layers have changed since the previous run...")
     else:
-        # Check how far up the hierarchy the derived layer needs to change
-        # 0 = MaintenanceAreas, 1 = Buildings, 2 = Roads, and so on
-        idx = [i for i, x in enumerate(equals_previous) if not x][0]
+        log.info("Creating a new ImperviousSurface layer...")
+        temp = impervious_features[0].memory_fc(original)
+        for surf in impervious_features[1:]:
+            temp = arcpy.Update_analysis(
+                temp, surf.memory_fc(original), "in_memory")
+
+        log.info("Loading new impervious surfaces into feature class...")
+        arcpy.TruncateTable_management(original)
+        arcpy.Append_management(temp, original, "TEST")
 
 
 if __name__ == '__main__':
@@ -98,18 +105,18 @@ if __name__ == '__main__':
     edit_conn = config['connections']['edit']
 
     # Initialize the logger for this file
-    log = config.logging.getLogger(__name__)
+    log = logging.getLogger(__name__)
 
     # Define order for intersecting layers, and relevant queries for each
     # Dicts within a list helps enforce ordering
-    layers = [{"GISPROD3.PW.PWMaintenanceArea":
-               "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"},
-              {"GISPROD3.PW.Building": ""},
-              {"GISPROD3.PW.RoadArea": ""},
-              {"GISPROD3.PW.ParkingLot": "AND SURFACETYPE = 'Impervious'"},
-              {"GISPROD3.PW.Driveway": ""},
+    layers = [{"GISPROD3.PW.ImperviousMisc": ""},
               {"GISPROD3.PW.SidewalkArea": ""},
-              {"GISPROD3.PW.ImperviousMisc": ""}]
+              {"GISPROD3.PW.Driveway": ""},
+              {"GISPROD3.PW.ParkingLot": "AND SURFACETYPE = 'Impervious'"},
+              {"GISPROD3.PW.RoadArea": ""},
+              {"GISPROD3.PW.Building": ""},
+              {"GISPROD3.PW.PWMaintenanceArea":
+               "AND FACILITYTYPE = 'Median' AND SURFTYPE = 'Hard'"}]
 
     try:
         main(layers)
