@@ -101,8 +101,11 @@ def main(lyrs):
                 f"memory\\{surf.name.split('.')[-1]}Update")
 
         log.info("Loading new impervious surfaces into feature class...")
-        arcpy.TruncateTable_management(original)
-        arcpy.Append_management(temp, original, "TEST")
+        with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
+            for row in cursor:
+                cursor.deleteRow()
+
+        arcpy.Append_management(temp, original, "NO_TEST")
 
 
 if __name__ == '__main__':
