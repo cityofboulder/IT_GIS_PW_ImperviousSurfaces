@@ -34,8 +34,11 @@ This script hinges on the ability to leverage `arcpy` as well as the `conda` env
 
 1. Ensure that your computer knows where ArcGIS Pro's conda environment lives
 
-    - Type `where conda` in your cmd prompt. If it's set up properly, that command should return something like `C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\conda.exe`
-    - If that does not come up, add the file path containing Pro's conda.exe to your system environment variables.
+    - Type `where conda` in your cmd prompt. If it's set up properly, that command should return something like:
+    
+        `C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\conda.exe`
+
+    - If that does not come up, add the file path containing Pro's conda.exe to your system environment Path variable.
 
 1. Add the following to the config file:
 
