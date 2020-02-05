@@ -1,6 +1,6 @@
 # Impervious Surfaces for Utility Billing
 
-## Introduction
+## Background
 ---
 
 This script utilizes planimetric data from city sources to derive a layer that can be used for estimating impervious area on properties for utility billing purposes. In the broadest terms, it does the following:
@@ -17,46 +17,34 @@ This script utilizes planimetric data from city sources to derive a layer that c
     - Sidewalk
     - ImperviousMisc
 
-## Using this script
+## Assumptions
+---
 
 This script assumes that the user has access to &mdash; and working knowledge of &mdash; the following software:
 
 - ArcGIS Pro 2.4+
 - Python 3.6+
 
-This script hinges on the ability to leverage `arcpy` as well as the `conda` environment that both ship with ArcGIS Pro. All that's required for the script to run properly inside a `cmd` prompt is an isolated conda environment that is cloned from the base conda environment shipped with Pro:
+This script hinges on the ability to leverage `arcpy` as well as the `conda` environment that both ship with ArcGIS Pro.
 
-```cmd
-conda create --name impervious_env --clone arcgispro-py3
-activate impervious_env
-```
-
-## Preparing the script for use
-
-The only non-standard library which this script uses is `pyyaml`, as it uses .yaml config files. In order to gain access to this library, use the `cmd` prompt to run the following commands:
-
-```cmd
-activate impoervious_env
-conda install pyyaml
-```
-
-`Conda` will prompt you to confirm. Say yes!
-
-Lastly, make sure to add the following to the config.yaml file before running the script:
-
-- whether to check the component layers against the last script run
-- file location of your sde connection used for editing
-- file location of your sde connection used for reading
-- email password (both in the logging section and email password section)
-- email recipients
-
-## Running the script
+## Setup and Use
 ---
 
-Use the cmd prompt:
+### Instructions
 
-```cmd
-cd filepath\containing\impervious.py
-activate impervious_env
-python impervious.py
-```
+1. Add the following to the config file:
+
+    - whether to check the component layers against the last script run
+    - file location of your sde connection used for editing
+    - file location of your sde connection used for reading
+    - email password (both in the logging section and email password section)
+    - email recipients
+
+2. Run the `setup_conda_env.bat` by double-clicking it
+3. Run the `run_script.bat` by double-clicking it
+
+### Explanation of setup files
+
+The `setup_conda_env.bat` file helps manage the creation of conda environments and the installation of python libraries inside that environment.
+
+The `run_script.bat` file runs the python file within that new conda environment's python executable.
