@@ -1,4 +1,4 @@
-call conda create --name impervious_env --clone arcgispro-py3
-call activate timpervious_env
-call conda install pyyaml
+conda create --name test --clone arcgispro-py3
+call activate test
+conda install pyyaml
 deactivate
