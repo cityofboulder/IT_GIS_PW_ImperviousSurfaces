@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
     # Define order for intersecting layers, and relevant queries for each
     # Dicts within a list helps enforce ordering
-    layers = [{"GISPROD3.PW.ImperviousMisc": ""},
+    layers = [{"GISPROD3.PW.ImperviousMisc": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.SidewalkArea": ""},
               {"GISPROD3.PW.Driveway": "LIFECYCLE = 'Active'"},
               {"GISPROD3.PW.ParkingLot":
