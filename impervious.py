@@ -70,7 +70,7 @@ class Impervious:
 
     def memory_fc(self, template_fc):
         """Creates a feature class in memory based off of template schema."""
-        fc = arcpy.CreateFeatureclass_management("in_memory",
+        fc = arcpy.CreateFeatureclass_management("temp.gdb",
                                                  self.name.split('.')[-1],
                                                  "POLYGON",
                                                  template=template_fc)
@@ -175,6 +175,9 @@ def main(lyrs, check, connection):
         The main email body message based on the results of the function
     """
 
+    # Define the workspace
+    arcpy.env.workspace = 'temp.gdb'
+
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
@@ -195,7 +198,7 @@ def main(lyrs, check, connection):
             log.info(f"Updating ImperviousSurface with {surf.name}...")
             temp = arcpy.Update_analysis(
                 temp, surf.memory_fc(original),
-                f"memory\\{surf.name.split('.')[-1]}Update")
+                f"temp.gdb\\{surf.name.split('.')[-1]}Update")
 
         # Remove old records from the table
         log.info("Removing old impervious surfaces from feature class...")
@@ -218,8 +221,7 @@ def main(lyrs, check, connection):
         log.info("Loading new impervious surfaces into feature class...")
         arcpy.Append_management(temp, original, "NO_TEST")
 
-        msg = ("The derived ImperviousSurfaces layer has been updated to "
-               "reflect changes in its component features")
+        msg = ("The derived ImperviousSurfaces layer has been updated.")
 
     # Return the email message notifying users of script run
     return msg
@@ -260,3 +262,6 @@ if __name__ == '__main__':
         send_email(password, message, email_recipients)
     except Exception:
         log.exception("Something prevented the script from running")
+    # finally:
+        # for l in arcpy.ListFeatureClasses:
+        #     arcpy.Delete_management(l)
