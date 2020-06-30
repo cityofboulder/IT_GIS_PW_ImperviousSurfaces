@@ -176,9 +176,6 @@ def main(lyrs, check, connection):
         The main email body message based on the results of the function
     """
 
-    # Define the workspace
-    arcpy.env.workspace = 'temp.gdb'
-
     # Define the output layer
     original = os.path.join(edit_conn, "GISPROD3.PW.ImperviousSurface")
 
@@ -259,11 +256,14 @@ if __name__ == '__main__':
                ("LIFECYCLE = 'Active' AND FACILITYTYPE = 'Median' "
                 "AND SURFTYPE = 'Hard'")}]
     try:
+        # Define the workspace
+        arcpy.env.workspace = 'temp.gdb'
+        # Remove old layers from workspace
+        for l in arcpy.ListFeatureClasses:
+            arcpy.Delete_management(l)
+        # Perform main task
         message = main(layers, check_previous, edit_conn)
         password = config['password']
         send_email(password, message, email_recipients)
     except Exception:
         log.exception("Something prevented the script from running")
-    # finally:
-        # for l in arcpy.ListFeatureClasses:
-        #     arcpy.Delete_management(l)
