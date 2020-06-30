@@ -48,11 +48,12 @@ This script hinges on the ability to leverage `arcpy` as well as the `conda` env
     - email password (both in the logging section and email password section)
     - email recipients
 
+3. Create an empty file geodatabase in the project folder called `temp.gdb`
 2. Run the `setup_conda_env.bat` by double-clicking it
 3. Run the `run_script.bat` by double-clicking it
 
 ### Explanation of setup files
 
-The `setup_conda_env.bat` file helps manage the creation of conda environments and the installation of python libraries inside that environment.
+The `setup_conda_env.bat` file helps manage the creation of conda environments and the installation of python libraries inside that environment. It only needs to be executed before the very first script run.
 
 The `run_script.bat` file runs the python file within that new conda environment's python executable.
