@@ -5,6 +5,7 @@ import logging
 import logging.config
 import logging.handlers
 import smtplib
+from time import sleep
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -200,24 +201,25 @@ def main(lyrs, check, connection):
                 temp, surf.memory_fc(original),
                 f"temp.gdb\\{surf.name.split('.')[-1]}Update")
 
-        # Remove old records from the table
+        # Remove old records from the table, make three attempts in case of
+        # unknown error
         log.info("Removing old impervious surfaces from feature class...")
-        editor = arcpy.da.Editor(connection)
-        editor.startEditing(False, True)
-        editor.startOperation()
-        with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
-            for row in cursor:
-                cursor.deleteRow()
-        editor.stopOperation()
-        editor.stopEditing(True)
-        del editor
+        for x in range(3):
+            try:
+                editor = arcpy.da.Editor(connection)
+                editor.startEditing(False, True)
+                editor.startOperation()
+                with arcpy.da.UpdateCursor(original, ['GLOBALID']) as cursor:
+                    for row in cursor:
+                        cursor.deleteRow()
+                editor.stopOperation()
+                editor.stopEditing(True)
+                break
+            except Exception:
+                sleep(20)  # sleep for 20 seconds before retrying
+            finally:
+                del editor
 
-        # insert_fields = ['ORIGIN', 'SHAPE@']
-        # with arcpy.da.InsertCursor(original, insert_fields) as insert:
-        #     with arcpy.da.SearchCursor(temp, insert_fields) as search:
-        #         for row in search:
-        #             insert.insertRow(row)
-        # Add new geometries
         log.info("Loading new impervious surfaces into feature class...")
         arcpy.Append_management(temp, original, "NO_TEST")
 
