@@ -203,8 +203,8 @@ def main(lyrs, check, connection):
 
         # Remove old records from the table, make three attempts in case of
         # unknown error
-        log.info("Removing old impervious surfaces from feature class...")
         for x in range(3):
+            log.info(f"Attempt #{x+1} for removing old data...")
             try:
                 editor = arcpy.da.Editor(connection)
                 editor.startEditing(False, True)
