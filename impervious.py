@@ -211,16 +211,21 @@ def main(lyrs, check, connection):
                         cursor.deleteRow()
                 editor.stopOperation()
                 editor.stopEditing(True)
+
+                log.info("Loading new impervious surfaces...")
+                arcpy.Append_management(temp, original, "NO_TEST")
+
+                msg = ("The derived layer has been updated.")
                 break
             except Exception:
-                sleep(20)  # sleep for 20 seconds before retrying
+                if x < 2:
+                    log.info(f"Attempt #{x+1} failed, rertrying...")
+                    sleep(20)  # sleep for 20 seconds before retrying
+                else:
+                    log.info("Final attempt failed...")
+                    msg = "The script failed to make edits."
             finally:
                 del editor
-
-        log.info("Loading new impervious surfaces into feature class...")
-        arcpy.Append_management(temp, original, "NO_TEST")
-
-        msg = ("The derived ImperviousSurfaces layer has been updated.")
 
     # Return the email message notifying users of script run
     return msg
@@ -259,7 +264,8 @@ if __name__ == '__main__':
         # Define the workspace
         arcpy.env.workspace = 'temp.gdb'
         # Remove old layers from workspace
-        for l in arcpy.ListFeatureClasses:
+        log.info("Removing old temporary derived data from temp.gdb...")
+        for l in arcpy.ListFeatureClasses():
             arcpy.Delete_management(l)
         # Perform main task
         message = main(layers, check_previous, edit_conn)
