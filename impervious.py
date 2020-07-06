@@ -263,10 +263,11 @@ if __name__ == '__main__':
     try:
         # Define the workspace
         arcpy.env.workspace = 'temp.gdb'
+        arcpy.env.overwriteOutput = True
         # Remove old layers from workspace
-        log.info("Removing old temporary derived data from temp.gdb...")
-        for l in arcpy.ListFeatureClasses():
-            arcpy.Delete_management(l)
+        # log.info("Removing old temporary derived data from temp.gdb...")
+        # for l in arcpy.ListFeatureClasses():
+        #     arcpy.Delete_management(l)
         # Perform main task
         message = main(layers, check_previous, edit_conn)
         password = config['password']
