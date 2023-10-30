@@ -1,0 +1,11 @@
+name: imperviousenv
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - geopandas
+  - pyogrio
+  - sqlalchemy
+  - pyodbc
+  - keyring
+  - ipykernel
