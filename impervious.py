@@ -1,14 +1,16 @@
 import functools
-import logging.config
 import json
-import keyring
+import logging.config
 import shelve
 import time
 from hashlib import sha256
 from pathlib import Path
 
 import geopandas as gpd
+import keyring
 import sqlalchemy as sa
+from arcpy import Append_management, TruncateTable_management
+from shapely.geometry import Polygon
 from sqlalchemy import create_engine
 
 # Data path to hashes from previous runs
@@ -123,14 +125,106 @@ class Surface:
         return equals_prev
 
 
+class Parcel(Surface):
+    def __init__(self, sql_file: Path) -> None:
+        super().__init__(sql_file)
+        self.cleansed = self.cleansed
+
+    @functools.cached_property
+    def cleansed(self) -> gpd.GeoDataFrame:
+        """Removes parcels, such as condo boxes, which are completely contained
+        in other parcels.
+
+        Note: Converts all geometries to singlepart.
+
+        Returns
+        -------
+        geopandas.GeoDataFrame
+        """
+        # Explode the geos so they are singlepart and easier to manipulate
+        exploded = self.gdf.explode(ignore_index=True)
+
+        # Add a flag for whether a geometry contains other geometries
+        exploded['CONTAINER'] = exploded.geometry.apply(
+            lambda x: len(x.interiors) > 0)
+
+        # Create a geodataframe of parcel exteriors
+        exteriors = gpd.GeoDataFrame(
+            data=exploded.drop(['geometry'], axis=1),
+            geometry=exploded.geometry.exterior.apply(lambda x: Polygon(x))
+        )
+
+        # Separate containers and non-containers into their own geodataframes
+        container_cond = (exteriors['CONTAINER'] == 1)
+        containers = exteriors[container_cond]
+        compares = exteriors[~container_cond]
+
+        # Perform a spatial join to help find the parcels that are not
+        # parcelitos or containers
+        sjoin = compares.sjoin(containers,
+                               predicate='within',
+                               how='left',
+                               lsuffix='parcel',
+                               rsuffix='container')
+        idx = sjoin[sjoin['index_container'].isna()].index
+
+        # Combine containers and non-parcelito parcels
+        cleansed = gpd.pd.concat([containers, exteriors.loc[idx]])
+        return cleansed
+
+    def impervious_metrics(self, surfaces: gpd.GeoDataFrame):
+        """Enrich each parcel with information about pervious and imperious
+        coverage.
+
+        Parameters
+        ----------
+        surfaces : gpd.GeoDataFrame
+            The geodataframe containing impervious surfaces
+
+        Returns
+        -------
+        geopandas.GeoDataFrame
+        """
+        # Spatial join of parcels and impervious surfaces
+        parcels = self.cleansed.copy()
+        parcels['geoms'] = parcels.geometry
+        sjoin = surfaces.sjoin(parcels,
+                               lsuffix='imperv',
+                               rsuffix='parcel')
+
+        # Intersect parcel boundaries with srface boundaries
+        geoms = sjoin['geoms'].buffer(0)
+        sjoin['intersection'] = sjoin.geometry.intersection(geoms)
+
+        # Calculate impervious area per parcel
+        sjoin['IMPERVAREA'] = round(sjoin['intersection'].area)
+
+        # Create new parcel layer with impervious area
+        parcel_enrich = gpd.GeoDataFrame(
+            data=sjoin[['GUID', 'SURFTYPE', 'IMPERVAREA', 'COBPIN']],
+            geometry=sjoin['geoms']
+        )
+
+        # Dissolve by COBPIN
+        dissolve = parcel_enrich.dissolve(by=['COBPIN'],
+                                          aggfunc={
+                                              'IMPERVAREA': 'sum'}
+                                          ).reset_index()
+        dissolve['PERVAREA'] = round(
+            dissolve['geometry'].area) - dissolve['IMPERVAREA']
+
+        return dissolve
+
+
 class GeoSQL:
-    def __init__(self, server, db, user, pwd, schema, table) -> None:
+    def __init__(self, server, db, user, pwd, schema, table, sde_conn=None):
         self.server = server
         self.db = db
         self.user = user
         self.pwd = pwd
         self.schema = schema
         self.table = table
+        self.sde_conn = sde_conn
         self._cnxn = self.cnxn
 
     # Decorator to handle SQL transactions
@@ -155,6 +249,37 @@ class GeoSQL:
                     '?driver=SQL Server')
         engine = create_engine(conn_str)
         return engine
+
+    @measure_time
+    def insert_arcpy(self, input):
+        if self.sde_conn:
+            # Get the full SDE path to the layer
+            sde_name = Path(self.sde_conn,
+                            f'{self.db}.{self.user}.{self.table}')
+
+            # Convert the file path to a string
+            if isinstance(input, Path):
+                input = str(input.absolute())
+
+            append_opts = {
+                'inputs': input,
+                'target': str(sde_name.absolute()),
+                'schema_type': 'NO_TEST'
+            }
+            return Append_management(**append_opts)
+        else:
+            log.warning('No sde connection file provided. Skipping insert.')
+
+    @measure_time
+    def truncate_arcpy(self):
+        if self.sde_conn:
+            # Get the full SDE path to the layer
+            sde_name = Path(self.sde_conn,
+                            f'{self.db}.{self.user}.{self.table}')
+
+            return TruncateTable_management(in_table=str(sde_name.absolute()))
+        else:
+            log.warning('No sde connection file provided. Skipping truncate.')
 
     @sql_transaction
     @measure_time

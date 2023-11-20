@@ -1,10 +1,12 @@
+import argparse
 import json
 import logging.config
-import numpy as np
 import sys
 from pathlib import Path
 
-from impervious import Surface, GeoSQL, get_creds
+import numpy as np
+
+from impervious import GeoSQL, Parcel, Surface, get_creds
 
 DATA_PATH = Path('data')
 QUERY_PATH = DATA_PATH / 'queries'
@@ -15,6 +17,8 @@ LAYER_ORDER = ('maintenance_areas',
                'driveways',
                'sidewalk_areas',
                'impervious_misc')
+IMPERVIOUS_OUT = DATA_PATH / 'ImperviousSurfaces.shp'
+PARCEL_OUT = DATA_PATH / 'ImperviousParcels.shp'
 
 # Read in the logging configuration
 email_creds = get_creds('email', 'noreply-gis')
@@ -27,10 +31,40 @@ with open('config.json', 'r') as config_file:
     logging.config.dictConfig(cfg)
     log = logging.getLogger(__name__)
 
+# Create parser with a description and arguments
+description = (
+    "Update an impervious surface topology in the GISReferenceData "
+    "database. Update metrics about impervious coverage on parcel "
+    "areas."
+)
+parser = argparse.ArgumentParser(
+    description=description
+)
+
+# Add arguments
+parser.add_argument(
+    "-s", "--sde",
+    type=str,
+    help=(
+        "The file path of the desired ESRI sde connection. The connection "
+        "needs to have truncate and insert permissions to the feature "
+        "classes in GISReferenceData."
+    )
+)
+
 if __name__ == '__main__':
     try:
         # Retreive credentials from keyring
         db_creds = get_creds('gis', 'pw')
+
+        # Parse arguments
+        args = parser.parse_args()
+
+        # Check that the sde connection file exists
+        sde = Path(args.sde)
+        if not sde.exists():
+            log.critical('The SDE connection file cannot be found. Exiting.\n')
+            sys.exit()
 
         # Get all surfaces into one list ordered by importance
         log.info('Starting SQL queries')
@@ -63,7 +97,6 @@ if __name__ == '__main__':
 
             # Replace the primary layer with the unioned layer
             primary = union[['guid', 'surftype', 'geometry']].copy()
-            primary.make_valid()
             del union
             del secondary
 
@@ -73,25 +106,43 @@ if __name__ == '__main__':
         final['shape'] = final['geometry'].to_wkt(rounding_precision=-1)
 
         # Save to disk
-        final_fields = ['guid', 'surftype', 'geometry']
-        final[final_fields].to_file(DATA_PATH / 'PseudoTopology.shp')
+        final.rename(columns={'guid': 'GUID', 'surftype': 'SURFTYPE'},
+                     inplace=True)
+        final_fields = ['GUID', 'SURFTYPE', 'geometry']
+        final[final_fields].to_file(IMPERVIOUS_OUT)
 
-        # Load the gdf to SQL Server
+        # Save to SQL
         db_kwargs = {
             'server': 'sqlprod19gis',
             'db': 'GISReferenceData',
             'user': db_creds['username'],
             'pwd': db_creds['password'],
             'schema': 'PW',
-            'table': 'ImperviousSurfaces'
+            'table': 'ImperviousSurfaces',
+            'sde_conn': sde
         }
-        ref_db = GeoSQL(**db_kwargs)
+        sql_imperv = GeoSQL(**db_kwargs)
+        sql_imperv.truncate_arcpy()
+        sql_imperv.insert_arcpy(IMPERVIOUS_OUT)
 
-        # Remove all rows currently in the table
-        ref_db.truncate()
+        # Enrich parcels with impervious surface coverage
+        parcels_lyr = Parcel(QUERY_PATH / 'parcels.sql')
+        parcels = parcels_lyr.impervious_metrics(final)
+        parcels.to_file(PARCEL_OUT)
 
-        # Load the new ones in
-        ref_db.insert(gdf=final)
+        # Save to SQL
+        db_kwargs = {
+            'server': 'sqlprod19gis',
+            'db': 'GISReferenceData',
+            'user': db_creds['username'],
+            'pwd': db_creds['password'],
+            'schema': 'PW',
+            'table': 'UtilityBillingAreas',
+            'sde_conn': sde
+        }
+        sql_parcels = GeoSQL(**db_kwargs)
+        sql_parcels.truncate_arcpy()
+        sql_parcels.insert_arcpy(PARCEL_OUT)
 
         # Store changes for next run
         log.info('Storing hashes for next run')
