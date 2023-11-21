@@ -101,17 +101,20 @@ if __name__ == '__main__':
             del secondary
 
         # Dissolve by the attribute fields
+        log.info('Dissolving features buy guid and surftype.')
         dissolved = primary.dissolve(by=['guid', 'surftype']).reset_index()
         final = dissolved.explode(ignore_index=True)
         final['shape'] = final['geometry'].to_wkt(rounding_precision=-1)
 
         # Save to disk
+        log.info('Saving ImperviousSurfaces to disk.')
         final.rename(columns={'guid': 'GUID', 'surftype': 'SURFTYPE'},
                      inplace=True)
         final_fields = ['GUID', 'SURFTYPE', 'geometry']
         final[final_fields].to_file(IMPERVIOUS_OUT)
 
         # Save to SQL
+        log.info('Saving outputs to GISReferenceData.PW.ImperviousSurfaces.')
         db_kwargs = {
             'server': 'sqlprod19gis',
             'db': 'GISReferenceData',
@@ -126,11 +129,14 @@ if __name__ == '__main__':
         sql_imperv.insert_arcpy(IMPERVIOUS_OUT)
 
         # Enrich parcels with impervious surface coverage
+        log.info('Enriching parcels with impervious coverage info.')
         parcels_lyr = Parcel(QUERY_PATH / 'parcels.sql')
         parcels = parcels_lyr.impervious_metrics(final)
+        log.info('Saving ImperviousParcels to disk.')
         parcels.to_file(PARCEL_OUT)
 
         # Save to SQL
+        log.info('Saving outputs to GISReferenceData.PW.UtilityBillingAreas.')
         db_kwargs = {
             'server': 'sqlprod19gis',
             'db': 'GISReferenceData',

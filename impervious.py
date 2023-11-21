@@ -128,7 +128,7 @@ class Surface:
 class Parcel(Surface):
     def __init__(self, sql_file: Path) -> None:
         super().__init__(sql_file)
-        self.cleansed = self.cleansed
+        self._cleansed = self.cleansed
 
     @functools.cached_property
     def cleansed(self) -> gpd.GeoDataFrame:
@@ -142,25 +142,30 @@ class Parcel(Surface):
         geopandas.GeoDataFrame
         """
         # Explode the geos so they are singlepart and easier to manipulate
+        log.debug('Exploding parcel geometries.')
         exploded = self.gdf.explode(ignore_index=True)
 
         # Add a flag for whether a geometry contains other geometries
+        log.debug('Labelling container parcels.')
         exploded['CONTAINER'] = exploded.geometry.apply(
             lambda x: len(x.interiors) > 0)
 
         # Create a geodataframe of parcel exteriors
+        log.debug('Saving exteriors.')
         exteriors = gpd.GeoDataFrame(
             data=exploded.drop(['geometry'], axis=1),
             geometry=exploded.geometry.exterior.apply(lambda x: Polygon(x))
         )
 
         # Separate containers and non-containers into their own geodataframes
+        log.debug('Parsing containers and non-containers.')
         container_cond = (exteriors['CONTAINER'] == 1)
         containers = exteriors[container_cond]
         compares = exteriors[~container_cond]
 
         # Perform a spatial join to help find the parcels that are not
         # parcelitos or containers
+        log.debug('Identifying parcelitos.')
         sjoin = compares.sjoin(containers,
                                predicate='within',
                                how='left',
@@ -169,6 +174,7 @@ class Parcel(Surface):
         idx = sjoin[sjoin['index_container'].isna()].index
 
         # Combine containers and non-parcelito parcels
+        log.debug('Combinging containers and non-parcelito parcels.')
         cleansed = gpd.pd.concat([containers, exteriors.loc[idx]])
         return cleansed
 
@@ -186,30 +192,36 @@ class Parcel(Surface):
         geopandas.GeoDataFrame
         """
         # Spatial join of parcels and impervious surfaces
-        parcels = self.cleansed.copy()
+        log.debug('Joining surfaces to cleansed parcels.')
+        parcels = self._cleansed.copy()
         parcels['geoms'] = parcels.geometry
         sjoin = surfaces.sjoin(parcels,
                                lsuffix='imperv',
                                rsuffix='parcel')
 
         # Intersect parcel boundaries with srface boundaries
+        log.debug('Finding intersecting geometries.')
         geoms = sjoin['geoms'].buffer(0)
         sjoin['intersection'] = sjoin.geometry.intersection(geoms)
 
         # Calculate impervious area per parcel
+        log.debug('Calculating the area of every intersected geometry.')
         sjoin['IMPERVAREA'] = round(sjoin['intersection'].area)
 
         # Create new parcel layer with impervious area
+        log.debug('Enriching parcels with impervious area.')
         parcel_enrich = gpd.GeoDataFrame(
             data=sjoin[['GUID', 'SURFTYPE', 'IMPERVAREA', 'COBPIN']],
             geometry=sjoin['geoms']
         )
 
         # Dissolve by COBPIN
+        log.debug('Dissolving features by COBPIN.')
         dissolve = parcel_enrich.dissolve(by=['COBPIN'],
                                           aggfunc={
                                               'IMPERVAREA': 'sum'}
                                           ).reset_index()
+        log.debug('Calculating pervious area.')
         dissolve['PERVAREA'] = round(
             dissolve['geometry'].area) - dissolve['IMPERVAREA']
 
