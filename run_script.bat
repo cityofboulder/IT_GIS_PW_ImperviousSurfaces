@@ -1,3 +1,0 @@
-call activate impervious_env
-python impervious.py
-deactivate
