@@ -37,8 +37,12 @@ def measure_time(func):
 
 
 class Surface:
-    def __init__(self, sql_file: Path) -> None:
+    def __init__(self, sql_file: Path,
+                 db_user: str,
+                 db_pass: str) -> None:
         self.sql_file = sql_file
+        self.db_user = db_user
+        self.db_pass = db_pass
         self.name = self.sql_file.stem
         self._query = self.query
         self._cnxn = self.cnxn
@@ -72,9 +76,19 @@ class Surface:
     @property
     def cnxn(self):
         """Create a SQLAlchemy engine to facilitate a database connection."""
-        conn_str = ('mssql+pyodbc://sqlprod19gis/GISPROD3'
-                    '?driver=SQL Server'
-                    '&Trusted_Connection=yes')
+        # Check if the user and password are provided
+        if self.db_user and self.db_pass:
+            conn_str = (f'mssql+pyodbc://{self.db_user}:{self.db_pass}'
+                        f'@sqlprod19gis/GISPROD3'
+                        '?driver=SQL Server')
+        else:
+            # Use the default connection string with trusted connection
+            # for Windows authentication
+            # Note: This assumes that the user has the necessary permissions
+            conn_str = ('mssql+pyodbc://sqlprod19gis/GISPROD3'
+                        '?driver=SQL Server'
+                        '&Trusted_Connection=yes')
+
         engine = create_engine(conn_str)
         return engine
 

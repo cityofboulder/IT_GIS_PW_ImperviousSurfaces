@@ -43,6 +43,22 @@ parser = argparse.ArgumentParser(
 
 # Add arguments
 parser.add_argument(
+    '-u', '--user',
+    type=str,
+    default=None,
+    help=(
+        "The username for database access. Default is None."
+    )
+)
+parser.add_argument(
+    '-p', '--password',
+    type=str,
+    default=None,
+    help=(
+        "The password for database access. Default is None."
+    )
+)
+parser.add_argument(
     "-s", "--sde",
     type=str,
     help=(
@@ -68,7 +84,12 @@ if __name__ == '__main__':
 
         # Get all surfaces into one list ordered by importance
         log.info('Starting SQL queries')
-        surfaces = [Surface(QUERY_PATH / f'{lyr}.sql') for lyr in LAYER_ORDER]
+        surfaces = []
+        for lyr in LAYER_ORDER:
+            surface = Surface(QUERY_PATH / f'{lyr}.sql',
+                              db_user=args.user,
+                              db_pass=args.password)
+            surfaces.append(surface)
 
         # Check if any of the layers changed
         log.info('Checking current layers against previous hashes')
