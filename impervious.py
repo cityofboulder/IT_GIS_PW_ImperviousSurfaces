@@ -140,8 +140,10 @@ class Surface:
 
 
 class Parcel(Surface):
-    def __init__(self, sql_file: Path) -> None:
-        super().__init__(sql_file)
+    def __init__(self, sql_file: Path,
+                 db_user: str,
+                 db_pass: str) -> None:
+        super().__init__(sql_file, db_user=db_user, db_pass=db_pass)
         self._cleansed = self.cleansed
 
     @functools.cached_property

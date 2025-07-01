@@ -151,7 +151,9 @@ if __name__ == '__main__':
 
         # Enrich parcels with impervious surface coverage
         log.info('Enriching parcels with impervious coverage info.')
-        parcels_lyr = Parcel(QUERY_PATH / 'parcels.sql')
+        parcels_lyr = Parcel(QUERY_PATH / 'parcels.sql', 
+                             db_user = args.user, 
+                             db_pass = args.password)
         parcels = parcels_lyr.impervious_metrics(final)
         log.info('Saving ImperviousParcels to disk.')
         parcels.to_file(PARCEL_OUT)
